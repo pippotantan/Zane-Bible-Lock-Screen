@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:screenshot/screenshot.dart';
 import 'package:zane_bible_lockscreen/core/models/bible_verse.dart';
 import 'package:zane_bible_lockscreen/core/services/bible_api_service.dart';
+import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_controls.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
 import '../../core/services/unsplash_service.dart';
@@ -8,12 +10,13 @@ import '../../widgets/verse_background_preview.dart';
 
 class VerseScreen extends StatefulWidget {
   const VerseScreen({super.key});
-  
+
   @override
   State<VerseScreen> createState() => _VerseScreenState();
 }
 
 class _VerseScreenState extends State<VerseScreen> {
+  final ScreenshotController screenshotController = ScreenshotController();
   BibleVerse? verse;
   String? backgroundUrl;
   bool loading = true;
@@ -26,39 +29,57 @@ class _VerseScreenState extends State<VerseScreen> {
   }
 
   Future<void> loadVerse() async {
-  setState(() => loading = true);
+    setState(() => loading = true);
 
-  final bibleService = BibleApiService();
-  final unsplashService = UnsplashService();
+    final bibleService = BibleApiService();
+    final unsplashService = UnsplashService();
 
-  final verseResult = await bibleService.fetchRandomVerse();
-  final bgResult = await unsplashService.fetchRandomBackground();
-  
-  setState(() {
-    verse = verseResult;
-    backgroundUrl = bgResult;
-    loading = false;
-  });
-}
+    final verseResult = await bibleService.fetchRandomVerse();
+    final bgResult = await unsplashService.fetchRandomBackground();
 
+    setState(() {
+      verse = verseResult;
+      backgroundUrl = bgResult;
+      loading = false;
+    });
+  }
 
-@override
-Widget build(BuildContext context) {
+  Future<void> generateImage() async {
+    try {
+      final service = ImageGenerationService();
+      final file = await service.generateImage(screenshotController);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Image generated:\n${file.path}')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to generate image: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: loading || verse == null || backgroundUrl == null
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                VerseBackgroundPreview(
-                  imageUrl: backgroundUrl!,
-                  verse: verse!.text,
-                  reference: verse!.reference,
-                  fontSize: editor.fontSize,
-                  textAlign: editor.textAlign,
-                  textColor: editor.textColor,
-                  fontFamily: editor.fontFamily,
+                Screenshot(
+                  controller: screenshotController,
+                  child: VerseBackgroundPreview(
+                    imageUrl: backgroundUrl!,
+                    verse: verse!.text,
+                    reference: verse!.reference,
+                    fontSize: editor.fontSize,
+                    textAlign: editor.textAlign,
+                    textColor: editor.textColor,
+                    fontFamily: editor.fontFamily,
+                  ),
                 ),
-
                 Positioned(
                   left: 0,
                   right: 0,
@@ -71,20 +92,30 @@ Widget build(BuildContext context) {
                         setState(() => editor.fontSize = v),
                     onAlignmentChanged: (a) =>
                         setState(() => editor.textAlign = a),
-                    onColorChanged: (c) =>
-                        setState(() => editor.textColor = c),
-                  fontFamily: editor.fontFamily,
-                  onFontFamilyChanged: (f) =>
-                    setState(() => editor.fontFamily = f),
+                    onColorChanged: (c) => setState(() => editor.textColor = c),
+                    fontFamily: editor.fontFamily,
+                    onFontFamilyChanged: (f) =>
+                        setState(() => editor.fontFamily = f),
                   ),
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: loadVerse,
-        child: const Icon(Icons.refresh),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'refresh',
+            onPressed: loadVerse,
+            child: const Icon(Icons.refresh),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'generate',
+            onPressed: generateImage,
+            child: const Icon(Icons.camera_alt),
+          ),
+        ],
       ),
     );
   }
-
 }
