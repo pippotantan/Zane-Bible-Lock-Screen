@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:screenshot/screenshot.dart';
 
 class VerseBackgroundPreview extends StatelessWidget {
   final String imageUrl;
@@ -9,8 +10,9 @@ class VerseBackgroundPreview extends StatelessWidget {
   final TextAlign textAlign;
   final Color textColor;
   final String fontFamily;
+  final ScreenshotController screenshotController = ScreenshotController();
 
-  const VerseBackgroundPreview({
+  VerseBackgroundPreview({
     super.key,
     required this.imageUrl,
     required this.verse,
@@ -20,7 +22,6 @@ class VerseBackgroundPreview extends StatelessWidget {
     required this.textColor,
     this.fontFamily = 'sans',
   });
-
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +38,7 @@ class VerseBackgroundPreview extends StatelessWidget {
 
         // Dark overlay for readability
         Positioned.fill(
-          child: Container(
-            color: Colors.black.withOpacity(0.35),
-          ),
+          child: Container(color: Colors.black.withOpacity(0.35)),
         ),
 
         Center(
@@ -58,10 +57,7 @@ class VerseBackgroundPreview extends StatelessWidget {
                     fontFamily: fontFamily == 'serif' ? 'Georgia' : null,
                     fontWeight: FontWeight.w600,
                     shadows: const [
-                      Shadow(
-                        blurRadius: 12,
-                        color: Colors.black,
-                      ),
+                      Shadow(blurRadius: 12, color: Colors.black),
                     ],
                   ),
                 ),
@@ -69,10 +65,7 @@ class VerseBackgroundPreview extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   '— $reference',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),

@@ -3,6 +3,9 @@ import 'package:screenshot/screenshot.dart';
 import 'package:zane_bible_lockscreen/core/models/bible_verse.dart';
 import 'package:zane_bible_lockscreen/core/services/bible_api_service.dart';
 import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
+import 'package:zane_bible_lockscreen/core/services/wallpaper_service.dart';
+import 'package:zane_bible_lockscreen/core/services/workmanager_service.dart';
+import 'package:zane_bible_lockscreen/core/utils/image_saver.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_controls.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
 import '../../core/services/unsplash_service.dart';
@@ -61,6 +64,21 @@ class _VerseScreenState extends State<VerseScreen> {
     }
   }
 
+  Future<void> generateAndSetWallpaper() async {
+    final image = await screenshotController.capture(
+      delay: const Duration(milliseconds: 200),
+    );
+
+    if (image == null) return;
+
+    final file = await ImageSaver.saveImage(image);
+
+    await WallpaperService.setWallpaper(
+      file,
+      location: WallpaperService.lockScreen, // or homeScreen / both
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,6 +131,14 @@ class _VerseScreenState extends State<VerseScreen> {
             heroTag: 'generate',
             onPressed: generateImage,
             child: const Icon(Icons.camera_alt),
+          ),
+          ElevatedButton(
+            onPressed: () => generateAndSetWallpaper(),
+            child: const Text('Set as Lock Screen'),
+          ),
+          ElevatedButton(
+            onPressed: () => WorkManagerService.scheduleDailyVerse(),
+            child: const Text('Schedule Daily Verse'),
           ),
         ],
       ),
