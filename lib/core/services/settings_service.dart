@@ -2,6 +2,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
 
+enum WallpaperTarget { lockScreenOnly, homeScreenOnly, both }
+
 class SettingsService {
   static const _useEditorForDailyKey = 'use_editor_for_daily';
   static const _fontSizeKey = 'editor_font_size';
@@ -11,6 +13,7 @@ class SettingsService {
   static const _isScheduledKey = 'daily_is_scheduled';
   static const _scheduledHourKey = 'daily_scheduled_hour';
   static const _scheduledMinuteKey = 'daily_scheduled_minute';
+  static const _wallpaperTargetKey = 'wallpaper_target';
 
   static Future<SharedPreferences> _prefs() => SharedPreferences.getInstance();
 
@@ -29,7 +32,9 @@ class SettingsService {
     final fontSize = p.getDouble(_fontSizeKey) ?? 22.0;
     final alignStr = p.getString(_textAlignKey) ?? 'center';
     final textColorValue = p.getInt(_textColorKey) ?? Colors.white.value;
-    final fontFamily = p.getString(_fontFamilyKey) ?? 'sans';
+
+    // NEW: Use actual font family names as default
+    final fontFamily = p.getString(_fontFamilyKey) ?? 'Roboto';
 
     TextAlign align;
     switch (alignStr) {
@@ -58,10 +63,12 @@ class SettingsService {
     final alignStr = state.textAlign == TextAlign.left
         ? 'left'
         : state.textAlign == TextAlign.right
-            ? 'right'
-            : 'center';
+        ? 'right'
+        : 'center';
     await p.setString(_textAlignKey, alignStr);
     await p.setInt(_textColorKey, state.textColor.value);
+
+    // Save the actual font family name
     await p.setString(_fontFamilyKey, state.fontFamily);
   }
 
@@ -83,9 +90,25 @@ class SettingsService {
 
   static Future<TimeOfDay?> getScheduledTime() async {
     final p = await _prefs();
-    if (!p.containsKey(_scheduledHourKey) || !p.containsKey(_scheduledMinuteKey)) return null;
+    if (!p.containsKey(_scheduledHourKey) ||
+        !p.containsKey(_scheduledMinuteKey))
+      return null;
     final h = p.getInt(_scheduledHourKey)!;
     final m = p.getInt(_scheduledMinuteKey)!;
     return TimeOfDay(hour: h, minute: m);
+  }
+
+  static Future<WallpaperTarget> getWallpaperTarget() async {
+    final p = await _prefs();
+    final value = p.getString(_wallpaperTargetKey) ?? 'both';
+    return WallpaperTarget.values.firstWhere(
+      (e) => e.toString().split('.').last == value,
+      orElse: () => WallpaperTarget.both,
+    );
+  }
+
+  static Future<void> setWallpaperTarget(WallpaperTarget target) async {
+    final p = await _prefs();
+    await p.setString(_wallpaperTargetKey, target.toString().split('.').last);
   }
 }

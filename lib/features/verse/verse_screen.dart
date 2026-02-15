@@ -37,19 +37,33 @@ class _VerseScreenState extends State<VerseScreen> {
   }
 
   Future<void> _loadEditorSettings() async {
-    final saved = await SettingsService.loadEditorState();
-    final use = await SettingsService.getUseEditorForDaily();
-    final sched = await SettingsService.getScheduled();
-    final schedTime = await SettingsService.getScheduledTime();
-    setState(() {
-      editor.fontSize = saved.fontSize;
-      editor.textAlign = saved.textAlign;
-      editor.textColor = saved.textColor;
-      editor.fontFamily = saved.fontFamily;
-      useForDaily = use;
-      isScheduled = sched;
-      scheduledTime = schedTime;
-    });
+    try {
+      final saved = await SettingsService.loadEditorState();
+      final use = await SettingsService.getUseEditorForDaily();
+      final sched = await SettingsService.getScheduled();
+      final schedTime = await SettingsService.getScheduledTime();
+
+      setState(() {
+        editor.fontSize = saved.fontSize;
+        editor.textAlign = saved.textAlign;
+        editor.textColor = saved.textColor;
+        editor.fontFamily = saved.fontFamily; // ← actual font from pubspec.yaml
+        useForDaily = use;
+        isScheduled = sched;
+        scheduledTime = schedTime;
+      });
+    } catch (e) {
+      print('[VerseScreen] Failed to load editor settings, using defaults: $e');
+      setState(() {
+        editor.fontSize = 42;
+        editor.textAlign = TextAlign.center;
+        editor.textColor = Colors.white;
+        editor.fontFamily = 'Roboto'; // fallback
+        useForDaily = false;
+        isScheduled = false;
+        scheduledTime = null;
+      });
+    }
   }
 
   Future<void> loadVerse() async {
@@ -86,18 +100,38 @@ class _VerseScreenState extends State<VerseScreen> {
   }
 
   Future<void> generateAndSetWallpaper() async {
-    final image = await screenshotController.capture(
-      delay: const Duration(milliseconds: 200),
-    );
+    try {
+      final image = await screenshotController.capture(
+        delay: const Duration(milliseconds: 200),
+      );
 
-    if (image == null) return;
+      if (image == null) return;
 
-    final file = await ImageSaver.saveImage(image);
+      final file = await ImageSaver.saveImage(image);
 
-    await WallpaperService.setWallpaper(
-      file,
-      location: WallpaperService.lockScreen, // or homeScreen / both
-    );
+      // Use user’s wallpaper target preference
+      final target = await SettingsService.getWallpaperTarget();
+      int location = WallpaperService.lockScreen;
+      if (target == WallpaperTarget.homeScreenOnly) {
+        location = WallpaperService.homeScreen;
+      } else if (target == WallpaperTarget.both) {
+        location = WallpaperService.both;
+      }
+
+      await WallpaperService.setWallpaper(file, location: location);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Wallpaper set successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to set wallpaper: $e')));
+      }
+    }
   }
 
   @override
@@ -116,9 +150,10 @@ class _VerseScreenState extends State<VerseScreen> {
                     fontSize: editor.fontSize,
                     textAlign: editor.textAlign,
                     textColor: editor.textColor,
-                    fontFamily: editor.fontFamily,
+                    fontFamily: editor.fontFamily, // ← real font name
                   ),
                 ),
+
                 Positioned(
                   left: 0,
                   right: 0,
@@ -129,21 +164,49 @@ class _VerseScreenState extends State<VerseScreen> {
                     textColor: editor.textColor,
                     useForDaily: useForDaily,
                     onFontSizeChanged: (v) => setState(() {
-                      editor.fontSize = v;
-                      SettingsService.saveEditorState(editor);
+                      final updated = editor.copyWith(fontSize: v);
+                      setState(() {
+                        editor
+                          ..fontSize = updated.fontSize
+                          ..textAlign = updated.textAlign
+                          ..textColor = updated.textColor
+                          ..fontFamily = updated.fontFamily;
+                      });
+                      SettingsService.saveEditorState(updated);
                     }),
                     onAlignmentChanged: (a) => setState(() {
-                      editor.textAlign = a;
-                      SettingsService.saveEditorState(editor);
+                      final updated = editor.copyWith(textAlign: a);
+                      setState(() {
+                        editor
+                          ..fontSize = updated.fontSize
+                          ..textAlign = updated.textAlign
+                          ..textColor = updated.textColor
+                          ..fontFamily = updated.fontFamily;
+                      });
+                      SettingsService.saveEditorState(updated);
                     }),
                     onColorChanged: (c) => setState(() {
-                      editor.textColor = c;
-                      SettingsService.saveEditorState(editor);
+                      final updated = editor.copyWith(textColor: c);
+                      setState(() {
+                        editor
+                          ..fontSize = updated.fontSize
+                          ..textAlign = updated.textAlign
+                          ..textColor = updated.textColor
+                          ..fontFamily = updated.fontFamily;
+                      });
+                      SettingsService.saveEditorState(updated);
                     }),
                     fontFamily: editor.fontFamily,
                     onFontFamilyChanged: (f) => setState(() {
-                      editor.fontFamily = f;
-                      SettingsService.saveEditorState(editor);
+                      final updated = editor.copyWith(fontFamily: f);
+                      setState(() {
+                        editor
+                          ..fontSize = updated.fontSize
+                          ..textAlign = updated.textAlign
+                          ..textColor = updated.textColor
+                          ..fontFamily = updated.fontFamily;
+                      });
+                      SettingsService.saveEditorState(updated);
                     }),
                     onUseForDailyChanged: (v) async {
                       setState(() => useForDaily = v);
@@ -151,12 +214,19 @@ class _VerseScreenState extends State<VerseScreen> {
                     },
                     onRefreshPressed: loadVerse,
                     onCapturePressed: generateImage,
-                    onSetLockPressed: () async => await generateAndSetWallpaper(),
+                    onSetLockPressed: () async =>
+                        await generateAndSetWallpaper(),
                     onScheduleAt: (time) async {
                       // schedule with WorkManager for chosen time
-                      await WorkManagerService.scheduleDailyVerseAt(time.hour, time.minute);
+                      await WorkManagerService.scheduleDailyVerseAt(
+                        time.hour,
+                        time.minute,
+                      );
                       await SettingsService.setScheduled(true);
-                      await SettingsService.setScheduledTime(time.hour, time.minute);
+                      await SettingsService.setScheduledTime(
+                        time.hour,
+                        time.minute,
+                      );
                       setState(() {
                         isScheduled = true;
                         scheduledTime = time;

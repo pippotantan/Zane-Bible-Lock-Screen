@@ -1,51 +1,95 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:zane_bible_lockscreen/background/verse_worker.dart';
 
 class WorkManagerService {
+  static const _taskKey = 'dailyVerseTask';
+  static const _scheduledHourKey = 'daily_scheduled_hour';
+  static const _scheduledMinuteKey = 'daily_scheduled_minute';
+
   static Future<void> scheduleDailyVerse() async {
-    await Workmanager().registerPeriodicTask(
-      'dailyVerseTask',
-      dailyVerseTask,
-      frequency: const Duration(hours: 24),
-      initialDelay: _initialDelay(),
-      constraints: Constraints(
-        networkType: NetworkType.connected,
-      ),
-    );
-      // Default schedule at 5:00 AM
-      await scheduleDailyVerseAt(5, 0);
-    }
+    // Default schedule at 5:00 AM
+    await scheduleDailyVerseAt(5, 0);
+  }
 
   static Future<void> cancelDailyVerse() async {
-    await Workmanager().cancelByUniqueName('dailyVerseTask');
+    print('[WorkManagerService] Cancelling daily verse task');
+    await Workmanager().cancelByUniqueName(_taskKey);
+    print('[WorkManagerService] Daily verse task cancelled');
   }
 
-  static Duration _initialDelay() {
-    final now = DateTime.now();
-    final nextRun = DateTime(now.year, now.month, now.day, 5);
-    return nextRun.isAfter(now)
-        ? nextRun.difference(now)
-        : nextRun.add(const Duration(days: 1)).difference(now);
-  }
+  static Future<void> scheduleDailyVerseAt(int hour, int minute) async {
+    print(
+      '[WorkManagerService] Scheduling daily verse at $hour:${minute.toString().padLeft(2, '0')}',
+    );
 
-    static Future<void> scheduleDailyVerseAt(int hour, int minute) async {
-      final initial = _initialDelayFor(hour, minute);
-      await Workmanager().registerPeriodicTask(
-        'dailyVerseTask',
+    final initial = _initialDelayFor(hour, minute);
+    print(
+      '[WorkManagerService] Initial delay: ${initial.inSeconds} seconds (${(initial.inHours + (initial.inMinutes % 60) / 60).toStringAsFixed(1)} hours)',
+    );
+
+    try {
+      // Save the scheduled time to SharedPreferences for later use
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_scheduledHourKey, hour);
+      await prefs.setInt(_scheduledMinuteKey, minute);
+      print('[WorkManagerService] Saved scheduled time to SharedPreferences');
+
+      // Cancel existing task before registering new one
+      await Workmanager().cancelByUniqueName(_taskKey);
+
+      print(
+        '[WorkManagerService] Registering one-off task for tomorrow or later today',
+      );
+
+      // Use registerOneOffTask with exact time instead of periodic
+      // This ensures execution at the exact scheduled time
+      await Workmanager().registerOneOffTask(
+        _taskKey,
         dailyVerseTask,
-        frequency: const Duration(hours: 24),
         initialDelay: initial,
         constraints: Constraints(
           networkType: NetworkType.connected,
+          requiresBatteryNotLow: false,
+          requiresDeviceIdle: false,
+          requiresStorageNotLow: false,
         ),
+        backoffPolicy: BackoffPolicy.exponential,
+        backoffPolicyDelay: const Duration(minutes: 15),
+        existingWorkPolicy: ExistingWorkPolicy.replace,
+      );
+
+      print('[WorkManagerService] Successfully registered daily verse task');
+      print(
+        '[WorkManagerService] Scheduled for $hour:${minute.toString().padLeft(2, '0')} daily',
+      );
+    } catch (e, stackTrace) {
+      print('[WorkManagerService] Error registering task: $e');
+      print('[WorkManagerService] Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  static Duration _initialDelayFor(int hour, int minute) {
+    final now = DateTime.now();
+    var nextRun = DateTime(now.year, now.month, now.day, hour, minute);
+
+    // If the time has already passed today, schedule for tomorrow
+    if (nextRun.isBefore(now)) {
+      nextRun = nextRun.add(const Duration(days: 1));
+      print(
+        '[WorkManagerService] Scheduled time already passed today, scheduling for tomorrow at $hour:${minute.toString().padLeft(2, '0')}',
+      );
+    } else {
+      print(
+        '[WorkManagerService] Scheduling for today at $hour:${minute.toString().padLeft(2, '0')}',
       );
     }
 
-    static Duration _initialDelayFor(int hour, int minute) {
-      final now = DateTime.now();
-      final nextRun = DateTime(now.year, now.month, now.day, hour, minute);
-      return nextRun.isAfter(now)
-          ? nextRun.difference(now)
-          : nextRun.add(const Duration(days: 1)).difference(now);
-    }
+    final delay = nextRun.difference(now);
+    print(
+      '[WorkManagerService] Delay calculated: ${delay.inMinutes} minutes from now',
+    );
+    return delay;
+  }
 }

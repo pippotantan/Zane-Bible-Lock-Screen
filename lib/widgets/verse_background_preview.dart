@@ -20,7 +20,7 @@ class VerseBackgroundPreview extends StatelessWidget {
     required this.fontSize,
     required this.textAlign,
     required this.textColor,
-    this.fontFamily = 'sans',
+    this.fontFamily = 'Roboto',
   });
 
   @override
@@ -54,7 +54,7 @@ class VerseBackgroundPreview extends StatelessWidget {
                     fontSize: fontSize,
                     height: 1.4,
                     color: textColor,
-                    fontFamily: fontFamily == 'serif' ? 'Georgia' : null,
+                    fontFamily: fontFamily,
                     fontWeight: FontWeight.w600,
                     shadows: const [
                       Shadow(blurRadius: 12, color: Colors.black),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zane_bible_lockscreen/features/settings/wallpaper_settings_screen.dart';
 
 class VerseEditorControls extends StatefulWidget {
   final double fontSize;
@@ -47,6 +48,34 @@ class VerseEditorControls extends StatefulWidget {
 class _VerseEditorControlsState extends State<VerseEditorControls> {
   bool expanded = true;
 
+  // Local copies to reflect changes immediately
+  late double fontSize;
+  late TextAlign textAlign;
+  late Color textColor;
+  late String fontFamily;
+  late bool useForDaily;
+
+  @override
+  void initState() {
+    super.initState();
+    fontSize = widget.fontSize;
+    textAlign = widget.textAlign;
+    textColor = widget.textColor;
+    fontFamily = widget.fontFamily;
+    useForDaily = widget.useForDaily;
+  }
+
+  @override
+  void didUpdateWidget(covariant VerseEditorControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep local state in sync if parent changes props externally
+    fontSize = widget.fontSize;
+    textAlign = widget.textAlign;
+    textColor = widget.textColor;
+    fontFamily = widget.fontFamily;
+    useForDaily = widget.useForDaily;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -60,175 +89,187 @@ class _VerseEditorControlsState extends State<VerseEditorControls> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // header: collapse/expand
+            // Header collapse/expand
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  icon: Icon(expanded ? Icons.expand_more : Icons.chevron_left, color: Colors.white),
+                  icon: Icon(
+                    expanded ? Icons.expand_more : Icons.chevron_left,
+                    color: Colors.white,
+                  ),
                   onPressed: () => setState(() => expanded = !expanded),
                 ),
                 const SizedBox(width: 8),
-                const Text('Editor & Controls', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Editor & Controls',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             if (!expanded) const SizedBox.shrink(),
             if (expanded) ...[
-          // Font size slider
-          Row(
-            children: [
-              const Icon(Icons.format_size, color: Colors.white),
-              Expanded(
-                child: Slider(
-                  value: widget.fontSize,
-                  min: 16,
-                  max: 36,
-                  divisions: 20,
-                  label: widget.fontSize.round().toString(),
-                  onChanged: widget.onFontSizeChanged,
-                ),
+              // Font size slider
+              Row(
+                children: [
+                  const Icon(Icons.format_size, color: Colors.white),
+                  Expanded(
+                    child: Slider(
+                      value: fontSize,
+                      min: 16,
+                      max: 36,
+                      divisions: 20,
+                      label: fontSize.round().toString(),
+                      onChanged: (v) {
+                        setState(() => fontSize = v);
+                        widget.onFontSizeChanged(v);
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
 
-          // Font family selection (sans / serif)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () => widget.onFontFamilyChanged('sans'),
-                child: Text(
-                  'Sans',
-                  style: TextStyle(
-                    color: widget.fontFamily == 'sans' ? Colors.amber : Colors.white,
+              // Alignment buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _alignButton(Icons.format_align_left, TextAlign.left),
+                  _alignButton(Icons.format_align_center, TextAlign.center),
+                  _alignButton(Icons.format_align_right, TextAlign.right),
+                ],
+              ),
+
+              // Color picker
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _colorDot(Colors.white),
+                  _colorDot(Colors.yellowAccent),
+                  _colorDot(Colors.orangeAccent),
+                  _colorDot(Colors.lightBlueAccent),
+                  _colorDot(Colors.purpleAccent),
+                  _colorDot(Colors.greenAccent),
+                  _colorDot(Colors.redAccent),
+                ],
+              ),
+
+              // Use for daily toggle
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Use these settings for Daily Verse',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: useForDaily,
+                    onChanged: (v) {
+                      setState(() => useForDaily = v);
+                      widget.onUseForDailyChanged(v);
+                    },
+                    activeThumbColor: Colors.amber,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Action buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    tooltip: 'Refresh verse',
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    onPressed: widget.onRefreshPressed,
+                  ),
+                  IconButton(
+                    tooltip: 'Capture image',
+                    icon: const Icon(Icons.camera_alt, color: Colors.white),
+                    onPressed: widget.onCapturePressed,
+                  ),
+                  IconButton(
+                    tooltip: 'Set as wallpaper',
+                    icon: const Icon(Icons.wallpaper, color: Colors.white),
+                    onPressed: () => widget.onSetLockPressed(),
+                  ),
+                  IconButton(
+                    tooltip: 'Wallpaper settings',
+                    icon: const Icon(Icons.settings, color: Colors.white),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const WallpaperSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+
+              // Scheduling controls
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () async {
+                      final now = TimeOfDay.now();
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: widget.scheduledTime ?? now,
+                      );
+                      if (picked != null) await widget.onScheduleAt(picked);
+                    },
+                    child: const Text('Schedule Daily Update'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: widget.isScheduled
+                        ? widget.onCancelSchedule
+                        : null,
+                    child: const Text('Cancel Schedule'),
+                  ),
+                ],
+              ),
+              if (widget.isScheduled && widget.scheduledTime != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6.0),
+                  child: Text(
+                    'Scheduled at ${widget.scheduledTime!.format(context)}',
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: () => widget.onFontFamilyChanged('serif'),
-                child: Text(
-                  'Serif',
-                  style: TextStyle(
-                    color: widget.fontFamily == 'serif' ? Colors.amber : Colors.white,
-                  ),
-                ),
-              ),
             ],
-          ),
-
-          // Alignment buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _alignButton(Icons.format_align_left, TextAlign.left),
-              _alignButton(Icons.format_align_center, TextAlign.center),
-              _alignButton(Icons.format_align_right, TextAlign.right),
-            ],
-          ),
-
-          // Color picker (simple)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _colorDot(Colors.white),
-              _colorDot(Colors.yellowAccent),
-              _colorDot(Colors.orangeAccent),
-              _colorDot(Colors.lightBlueAccent),
-              _colorDot(Colors.purpleAccent),
-              _colorDot(Colors.greenAccent),
-              _colorDot(Colors.redAccent),
-            ],
-          ),
-
-          // Use for daily verse toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Use these settings for Daily Verse', style: TextStyle(color: Colors.white)),
-              const SizedBox(width: 8),
-              Switch(
-                value: widget.useForDaily,
-                onChanged: widget.onUseForDailyChanged,
-                activeColor: Colors.amber,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // Action buttons row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                tooltip: 'Refresh verse',
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                onPressed: widget.onRefreshPressed,
-              ),
-              IconButton(
-                tooltip: 'Capture image',
-                icon: const Icon(Icons.camera_alt, color: Colors.white),
-                onPressed: widget.onCapturePressed,
-              ),
-              IconButton(
-                tooltip: 'Set as lock screen',
-                icon: const Icon(Icons.wallpaper, color: Colors.white),
-                onPressed: () => widget.onSetLockPressed(),
-              ),
-            ],
-          ),
-
-          // Scheduling controls
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: () async {
-                  final now = TimeOfDay.now();
-                  final picked = await showTimePicker(context: context, initialTime: widget.scheduledTime ?? now);
-                  if (picked != null) {
-                    await widget.onScheduleAt(picked);
-                  }
-                },
-                child: const Text('Schedule Daily Update'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: widget.isScheduled ? widget.onCancelSchedule : null,
-                child: const Text('Cancel Schedule'),
-              ),
-            ],
-          ),
-          if (widget.isScheduled && widget.scheduledTime != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6.0),
-              child: Text('Scheduled at ${widget.scheduledTime!.format(context)}', style: const TextStyle(color: Colors.white70)),
-            ),
           ],
-        ],
-      ),
+        ),
       ),
     );
   }
 
   Widget _alignButton(IconData icon, TextAlign align) {
     return IconButton(
-      icon: Icon(
-        icon,
-        color: widget.textAlign == align ? Colors.amber : Colors.white,
-      ),
-      onPressed: () => widget.onAlignmentChanged(align),
+      icon: Icon(icon, color: textAlign == align ? Colors.amber : Colors.white),
+      onPressed: () {
+        setState(() => textAlign = align);
+        widget.onAlignmentChanged(align);
+      },
     );
   }
 
   Widget _colorDot(Color color) {
     return GestureDetector(
-      onTap: () => widget.onColorChanged(color),
+      onTap: () {
+        setState(() => textColor = color);
+        widget.onColorChanged(color);
+      },
       child: CircleAvatar(
         backgroundColor: color,
         radius: 14,
-        child: widget.textColor == color
+        child: textColor == color
             ? const Icon(Icons.check, color: Colors.black, size: 16)
             : null,
       ),
