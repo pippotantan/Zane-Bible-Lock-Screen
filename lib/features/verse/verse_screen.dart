@@ -5,6 +5,7 @@ import 'package:zane_bible_lockscreen/core/services/bible_api_service.dart';
 import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
 import 'package:zane_bible_lockscreen/core/services/wallpaper_service.dart';
 import 'package:zane_bible_lockscreen/core/services/workmanager_service.dart';
+import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
 import 'package:zane_bible_lockscreen/core/utils/image_saver.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_controls.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
@@ -24,11 +25,31 @@ class _VerseScreenState extends State<VerseScreen> {
   String? backgroundUrl;
   bool loading = true;
   final editor = VerseEditorState();
+  bool useForDaily = false;
+  bool isScheduled = false;
+  TimeOfDay? scheduledTime;
 
   @override
   void initState() {
     super.initState();
     loadVerse();
+    _loadEditorSettings();
+  }
+
+  Future<void> _loadEditorSettings() async {
+    final saved = await SettingsService.loadEditorState();
+    final use = await SettingsService.getUseEditorForDaily();
+    final sched = await SettingsService.getScheduled();
+    final schedTime = await SettingsService.getScheduledTime();
+    setState(() {
+      editor.fontSize = saved.fontSize;
+      editor.textAlign = saved.textAlign;
+      editor.textColor = saved.textColor;
+      editor.fontFamily = saved.fontFamily;
+      useForDaily = use;
+      isScheduled = sched;
+      scheduledTime = schedTime;
+    });
   }
 
   Future<void> loadVerse() async {
@@ -106,42 +127,56 @@ class _VerseScreenState extends State<VerseScreen> {
                     fontSize: editor.fontSize,
                     textAlign: editor.textAlign,
                     textColor: editor.textColor,
-                    onFontSizeChanged: (v) =>
-                        setState(() => editor.fontSize = v),
-                    onAlignmentChanged: (a) =>
-                        setState(() => editor.textAlign = a),
-                    onColorChanged: (c) => setState(() => editor.textColor = c),
+                    useForDaily: useForDaily,
+                    onFontSizeChanged: (v) => setState(() {
+                      editor.fontSize = v;
+                      SettingsService.saveEditorState(editor);
+                    }),
+                    onAlignmentChanged: (a) => setState(() {
+                      editor.textAlign = a;
+                      SettingsService.saveEditorState(editor);
+                    }),
+                    onColorChanged: (c) => setState(() {
+                      editor.textColor = c;
+                      SettingsService.saveEditorState(editor);
+                    }),
                     fontFamily: editor.fontFamily,
-                    onFontFamilyChanged: (f) =>
-                        setState(() => editor.fontFamily = f),
+                    onFontFamilyChanged: (f) => setState(() {
+                      editor.fontFamily = f;
+                      SettingsService.saveEditorState(editor);
+                    }),
+                    onUseForDailyChanged: (v) async {
+                      setState(() => useForDaily = v);
+                      await SettingsService.setUseEditorForDaily(v);
+                    },
+                    onRefreshPressed: loadVerse,
+                    onCapturePressed: generateImage,
+                    onSetLockPressed: () async => await generateAndSetWallpaper(),
+                    onScheduleAt: (time) async {
+                      // schedule with WorkManager for chosen time
+                      await WorkManagerService.scheduleDailyVerseAt(time.hour, time.minute);
+                      await SettingsService.setScheduled(true);
+                      await SettingsService.setScheduledTime(time.hour, time.minute);
+                      setState(() {
+                        isScheduled = true;
+                        scheduledTime = time;
+                      });
+                    },
+                    onCancelSchedule: () async {
+                      await WorkManagerService.cancelDailyVerse();
+                      await SettingsService.setScheduled(false);
+                      setState(() {
+                        isScheduled = false;
+                        scheduledTime = null;
+                      });
+                    },
+                    isScheduled: isScheduled,
+                    scheduledTime: scheduledTime,
                   ),
                 ),
               ],
             ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: 'refresh',
-            onPressed: loadVerse,
-            child: const Icon(Icons.refresh),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'generate',
-            onPressed: generateImage,
-            child: const Icon(Icons.camera_alt),
-          ),
-          ElevatedButton(
-            onPressed: () => generateAndSetWallpaper(),
-            child: const Text('Set as Lock Screen'),
-          ),
-          ElevatedButton(
-            onPressed: () => WorkManagerService.scheduleDailyVerse(),
-            child: const Text('Schedule Daily Verse'),
-          ),
-        ],
-      ),
+      floatingActionButton: null,
     );
   }
 }

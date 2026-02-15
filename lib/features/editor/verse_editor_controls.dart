@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class VerseEditorControls extends StatelessWidget {
+class VerseEditorControls extends StatefulWidget {
   final double fontSize;
   final TextAlign textAlign;
   final Color textColor;
@@ -9,6 +9,15 @@ class VerseEditorControls extends StatelessWidget {
   final ValueChanged<TextAlign> onAlignmentChanged;
   final ValueChanged<Color> onColorChanged;
   final ValueChanged<String> onFontFamilyChanged;
+  final bool useForDaily;
+  final ValueChanged<bool> onUseForDailyChanged;
+  final VoidCallback onRefreshPressed;
+  final VoidCallback onCapturePressed;
+  final Future<void> Function() onSetLockPressed;
+  final Future<void> Function(TimeOfDay time) onScheduleAt;
+  final Future<void> Function() onCancelSchedule;
+  final bool isScheduled;
+  final TimeOfDay? scheduledTime;
 
   const VerseEditorControls({
     super.key,
@@ -20,7 +29,23 @@ class VerseEditorControls extends StatelessWidget {
     required this.onAlignmentChanged,
     required this.onColorChanged,
     required this.onFontFamilyChanged,
+    required this.useForDaily,
+    required this.onUseForDailyChanged,
+    required this.onRefreshPressed,
+    required this.onCapturePressed,
+    required this.onSetLockPressed,
+    required this.onScheduleAt,
+    required this.onCancelSchedule,
+    required this.isScheduled,
+    required this.scheduledTime,
   });
+
+  @override
+  State<VerseEditorControls> createState() => _VerseEditorControlsState();
+}
+
+class _VerseEditorControlsState extends State<VerseEditorControls> {
+  bool expanded = true;
 
   @override
   Widget build(BuildContext context) {
@@ -35,18 +60,32 @@ class VerseEditorControls extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // header: collapse/expand
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(expanded ? Icons.expand_more : Icons.chevron_left, color: Colors.white),
+                  onPressed: () => setState(() => expanded = !expanded),
+                ),
+                const SizedBox(width: 8),
+                const Text('Editor & Controls', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            if (!expanded) const SizedBox.shrink(),
+            if (expanded) ...[
           // Font size slider
           Row(
             children: [
               const Icon(Icons.format_size, color: Colors.white),
               Expanded(
                 child: Slider(
-                  value: fontSize,
+                  value: widget.fontSize,
                   min: 16,
                   max: 36,
                   divisions: 20,
-                  label: fontSize.round().toString(),
-                  onChanged: onFontSizeChanged,
+                  label: widget.fontSize.round().toString(),
+                  onChanged: widget.onFontSizeChanged,
                 ),
               ),
             ],
@@ -57,21 +96,21 @@ class VerseEditorControls extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TextButton(
-                onPressed: () => onFontFamilyChanged('sans'),
+                onPressed: () => widget.onFontFamilyChanged('sans'),
                 child: Text(
                   'Sans',
                   style: TextStyle(
-                    color: fontFamily == 'sans' ? Colors.amber : Colors.white,
+                    color: widget.fontFamily == 'sans' ? Colors.amber : Colors.white,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               TextButton(
-                onPressed: () => onFontFamilyChanged('serif'),
+                onPressed: () => widget.onFontFamilyChanged('serif'),
                 child: Text(
                   'Serif',
                   style: TextStyle(
-                    color: fontFamily == 'serif' ? Colors.amber : Colors.white,
+                    color: widget.fontFamily == 'serif' ? Colors.amber : Colors.white,
                   ),
                 ),
               ),
@@ -101,6 +140,72 @@ class VerseEditorControls extends StatelessWidget {
               _colorDot(Colors.redAccent),
             ],
           ),
+
+          // Use for daily verse toggle
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Use these settings for Daily Verse', style: TextStyle(color: Colors.white)),
+              const SizedBox(width: 8),
+              Switch(
+                value: widget.useForDaily,
+                onChanged: widget.onUseForDailyChanged,
+                activeColor: Colors.amber,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // Action buttons row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                tooltip: 'Refresh verse',
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: widget.onRefreshPressed,
+              ),
+              IconButton(
+                tooltip: 'Capture image',
+                icon: const Icon(Icons.camera_alt, color: Colors.white),
+                onPressed: widget.onCapturePressed,
+              ),
+              IconButton(
+                tooltip: 'Set as lock screen',
+                icon: const Icon(Icons.wallpaper, color: Colors.white),
+                onPressed: () => widget.onSetLockPressed(),
+              ),
+            ],
+          ),
+
+          // Scheduling controls
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  final now = TimeOfDay.now();
+                  final picked = await showTimePicker(context: context, initialTime: widget.scheduledTime ?? now);
+                  if (picked != null) {
+                    await widget.onScheduleAt(picked);
+                  }
+                },
+                child: const Text('Schedule Daily Update'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: widget.isScheduled ? widget.onCancelSchedule : null,
+                child: const Text('Cancel Schedule'),
+              ),
+            ],
+          ),
+          if (widget.isScheduled && widget.scheduledTime != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6.0),
+              child: Text('Scheduled at ${widget.scheduledTime!.format(context)}', style: const TextStyle(color: Colors.white70)),
+            ),
+          ],
         ],
       ),
       ),
@@ -111,19 +216,19 @@ class VerseEditorControls extends StatelessWidget {
     return IconButton(
       icon: Icon(
         icon,
-        color: textAlign == align ? Colors.amber : Colors.white,
+        color: widget.textAlign == align ? Colors.amber : Colors.white,
       ),
-      onPressed: () => onAlignmentChanged(align),
+      onPressed: () => widget.onAlignmentChanged(align),
     );
   }
 
   Widget _colorDot(Color color) {
     return GestureDetector(
-      onTap: () => onColorChanged(color),
+      onTap: () => widget.onColorChanged(color),
       child: CircleAvatar(
         backgroundColor: color,
         radius: 14,
-        child: textColor == color
+        child: widget.textColor == color
             ? const Icon(Icons.check, color: Colors.black, size: 16)
             : null,
       ),
