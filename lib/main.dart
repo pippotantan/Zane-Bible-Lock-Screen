@@ -20,7 +20,7 @@ Future<void> main() async {
   // Restore any previously scheduled tasks on app startup
   await _restoreScheduledTasks();
 
-  runApp(const ZaneBibleApp());
+  runApp(const DailyFaithApp());
 }
 
 Future<void> _requestPermissions() async {

@@ -1,6 +1,6 @@
-# zane_bible_lockscreen
+# DailyFaith
 
-A new Flutter project.
+A Flutter app for daily Bible verse wallpapers.
 
 ## Getting Started
 
