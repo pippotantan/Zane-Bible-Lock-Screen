@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
+import 'package:zane_bible_lockscreen/core/utils/bible_topics.dart';
 
 class WallpaperSettingsScreen extends StatefulWidget {
   const WallpaperSettingsScreen({super.key});
@@ -11,21 +12,24 @@ class WallpaperSettingsScreen extends StatefulWidget {
 
 class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
   WallpaperTarget selectedTarget = WallpaperTarget.both;
+  String selectedVerseTopic = BibleTopics.all;
   bool isLoading = true;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _loadWallpaperTarget();
+    _loadSettings();
   }
 
-  Future<void> _loadWallpaperTarget() async {
+  Future<void> _loadSettings() async {
     try {
       final target = await SettingsService.getWallpaperTarget();
+      final topic = await SettingsService.getVerseTopic();
       if (mounted) {
         setState(() {
           selectedTarget = target;
+          selectedVerseTopic = topic;
           isLoading = false;
         });
       }
@@ -33,9 +37,31 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
       if (mounted) {
         setState(() {
           selectedTarget = WallpaperTarget.both;
+          selectedVerseTopic = BibleTopics.all;
           isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _saveVerseTopic(String topicId) async {
+    setState(() => _isSaving = true);
+    try {
+      await SettingsService.setVerseTopic(topicId);
+      if (mounted) {
+        setState(() {
+          selectedVerseTopic = topicId;
+          _isSaving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verse topic updated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update topic: $e')),
+      );
     }
   }
 
@@ -98,6 +124,44 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Text(
+                    'Verse by topic or keyword',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Filter which verses appear on manual and automatic wallpapers. Default: all 66 books.',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: BibleTopics.topicIds.contains(selectedVerseTopic)
+                            ? selectedVerseTopic
+                            : BibleTopics.all,
+                        underline: const SizedBox(),
+                        items: BibleTopics.topicIds.map((id) {
+                          return DropdownMenuItem<String>(
+                            value: id,
+                            child: Text(BibleTopics.labelFor(id)),
+                          );
+                        }).toList(),
+                        onChanged: _isSaving
+                            ? null
+                            : (value) {
+                                if (value != null) _saveVerseTopic(value);
+                              },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
                   const Text(
                     'Apply Background Updates To:',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

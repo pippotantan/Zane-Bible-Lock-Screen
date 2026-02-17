@@ -21,8 +21,9 @@ class AutoWallpaperService {
         return;
       }
 
-      // ✅ 2. Fetch random verse
-      final BibleVerse verse = await BibleApiService().fetchRandomVerse();
+      // ✅ 2. Fetch random verse (filtered by user's topic if set)
+      final topic = await SettingsService.getVerseTopic();
+      final BibleVerse verse = await BibleApiService().fetchRandomVerse(topicId: topic);
 
       // ✅ 3. Fetch background image (hotlinked URL from API + attribution)
       final UnsplashPhotoResult unsplashPhoto =

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:zane_bible_lockscreen/core/utils/bible_topics.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
 
 enum WallpaperTarget { lockScreenOnly, homeScreenOnly, both }
@@ -14,8 +15,20 @@ class SettingsService {
   static const _scheduledHourKey = 'daily_scheduled_hour';
   static const _scheduledMinuteKey = 'daily_scheduled_minute';
   static const _wallpaperTargetKey = 'wallpaper_target';
+  static const _verseTopicKey = 'verse_topic';
 
   static Future<SharedPreferences> _prefs() => SharedPreferences.getInstance();
+
+  /// Verse topic filter (e.g. "all", "love", "hope"). Default "all" = all 66 books.
+  static Future<String> getVerseTopic() async {
+    final p = await _prefs();
+    return p.getString(_verseTopicKey) ?? BibleTopics.all;
+  }
+
+  static Future<void> setVerseTopic(String topicId) async {
+    final p = await _prefs();
+    await p.setString(_verseTopicKey, topicId);
+  }
 
   static Future<bool> getUseEditorForDaily() async {
     final p = await _prefs();

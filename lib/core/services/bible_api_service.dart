@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/bible_verse.dart';
-import '../utils/bible_metadata.dart';
+import '../utils/bible_topics.dart';
 
 class BibleApiService {
   static const String baseUrl =
@@ -12,12 +12,13 @@ class BibleApiService {
   static const Duration _timeout = Duration(seconds: 30);
   static const Duration _initialBackoff = Duration(seconds: 2);
 
-  Future<BibleVerse> fetchRandomVerse() async {
-    final passage = BibleMetadata.randomPassage();
+  /// [topicId] optional; e.g. "all" (default), "love", "hope". When not "all", picks from that topic's passages.
+  Future<BibleVerse> fetchRandomVerse({String? topicId}) async {
+    final passage = BibleTopics.getRandomPassageForTopic(topicId);
     final formatted = passage.replaceAll(' ', '+');
     final url = Uri.parse('$baseUrl$formatted');
 
-    print('[BibleApiService] Fetching verse: $passage');
+    print('[BibleApiService] Fetching verse: $passage (topic: ${topicId ?? "all"})');
 
     return _retryWithBackoff(
       () => _fetchVerseWithTimeout(url),
