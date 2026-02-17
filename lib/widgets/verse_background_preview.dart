@@ -2,6 +2,21 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+List<Shadow> _readabilityShadows(Color textColor) {
+  final luminance = textColor.computeLuminance();
+  if (luminance > 0.4) {
+    return [
+      Shadow(color: Colors.black.withOpacity(0.9), offset: const Offset(2, 2), blurRadius: 2),
+      Shadow(color: Colors.black.withOpacity(0.6), offset: const Offset(1, 1), blurRadius: 4),
+    ];
+  } else {
+    return [
+      Shadow(color: Colors.white.withOpacity(0.9), offset: const Offset(2, 2), blurRadius: 2),
+      Shadow(color: Colors.white.withOpacity(0.6), offset: const Offset(1, 1), blurRadius: 4),
+    ];
+  }
+}
+
 class VerseBackgroundPreview extends StatelessWidget {
   final String imageUrl;
   final String verse;
@@ -30,18 +45,18 @@ class VerseBackgroundPreview extends StatelessWidget {
         /// Background
         Image.network(imageUrl, fit: BoxFit.cover),
 
-        /// Dark overlay
-        Container(color: Colors.black.withOpacity(0.35)),
+        /// Dark overlay for readability on any background
+        Container(color: Colors.black.withOpacity(0.48)),
 
-        /// Safe padded content
+        /// Safe padded content (generous so text is never cut off)
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 56),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  /// Verse
+                  /// Verse (shadow for readability on any background)
                   Text(
                     verse,
                     textAlign: textAlign,
@@ -51,12 +66,13 @@ class VerseBackgroundPreview extends StatelessWidget {
                       height: 1.3,
                       fontFamily: fontFamily,
                       fontWeight: FontWeight.w500,
+                      shadows: _readabilityShadows(textColor),
                     ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  /// Reference (smaller + simple font)
+                  /// Reference (smaller + simple font, shadow for readability)
                   Text(
                     reference,
                     textAlign: textAlign,
@@ -64,7 +80,8 @@ class VerseBackgroundPreview extends StatelessWidget {
                       fontSize: fontSize * 0.55,
                       color: textColor.withOpacity(0.9),
                       fontStyle: FontStyle.italic,
-                      fontFamily: 'Roboto', // simple clean font
+                      fontFamily: 'Roboto',
+                      shadows: _readabilityShadows(textColor),
                     ),
                   ),
                 ],
