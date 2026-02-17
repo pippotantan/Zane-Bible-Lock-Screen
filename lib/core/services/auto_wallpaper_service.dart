@@ -1,16 +1,12 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:screenshot/screenshot.dart';
 import 'package:flutter/material.dart';
 import 'package:wallpaper_manager_flutter/wallpaper_manager_flutter.dart';
 import 'package:zane_bible_lockscreen/core/models/bible_verse.dart';
 import 'package:zane_bible_lockscreen/core/services/bible_api_service.dart';
+import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
 import 'package:zane_bible_lockscreen/core/services/unsplash_service.dart';
 import 'package:zane_bible_lockscreen/core/services/network_service.dart';
-import 'package:zane_bible_lockscreen/widgets/verse_background_preview.dart';
 import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
 
 class AutoWallpaperService {
@@ -66,52 +62,24 @@ class AutoWallpaperService {
         print('[AutoWallpaperService] Editor settings failed, using defaults');
       }
 
-      // ✅ 6. Capture widget to image
-      final controller = ScreenshotController();
-      late Uint8List image;
-
-      try {
-        image = await controller.captureFromWidget(
-          SizedBox(
-            width: 1080,
-            height: 1920,
-            child: MaterialApp(
-              debugShowCheckedModeBanner: false,
-              home: VerseBackgroundPreview(
-                imageUrl: backgroundUrl,
-                verse: verse.text,
-                reference: verse.reference,
-                fontSize: fontSize,
-                textAlign: textAlign,
-                textColor: textColor,
-                fontFamily: fontFamily,
-              ),
-            ),
-          ),
-          pixelRatio: 2.5,
-        );
-      } catch (e) {
-        print('[AutoWallpaperService] Widget capture failed. Using canvas.');
-
-        image = await generateSmartVerseWallpaper(
-          backgroundUrl: backgroundUrl,
-          verseText: verse.text,
-          reference: verse.reference,
-          width: 1080,
-          height: 1920,
-          fontSize: fontSize,
-          textColor: textColor,
-          fontFamily: fontFamily,
-          textAlign: textAlign,
-        );
-      }
+      // 6️⃣ Generate image using centralized service
+      final image = await ImageGenerationService.generateVerseImage(
+        backgroundUrl: backgroundUrl,
+        verse: verse.text,
+        reference: verse.reference,
+        fontSize: fontSize,
+        textAlign: textAlign,
+        textColor: textColor,
+        fontFamily: fontFamily,
+      );
 
       print('[AutoWallpaperService] Image generated (${image.length} bytes)');
 
       // ✅ 7. Save file
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/daily_verse.png');
-      await file.writeAsBytes(image);
+      final file = await ImageGenerationService.saveImage(
+        image,
+        'daily_verse.png',
+      );
 
       print('[AutoWallpaperService] Image saved at ${file.path}');
 
@@ -159,7 +127,7 @@ class AutoWallpaperService {
   }
 }
 
-/// Headless image generator: download background, draw text overlay on Canvas
+/* /// Headless image generator: download background, draw text overlay on Canvas
 Future<Uint8List> generateSmartVerseWallpaper({
   required String backgroundUrl,
   required String verseText,
@@ -257,4 +225,4 @@ Future<Uint8List> generateSmartVerseWallpaper({
 
   if (byteData == null) throw Exception('Failed to encode final image');
   return byteData.buffer.asUint8List();
-}
+} */

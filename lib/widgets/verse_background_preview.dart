@@ -1,6 +1,6 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:screenshot/screenshot.dart';
 
 class VerseBackgroundPreview extends StatelessWidget {
   final String imageUrl;
@@ -10,9 +10,8 @@ class VerseBackgroundPreview extends StatelessWidget {
   final TextAlign textAlign;
   final Color textColor;
   final String fontFamily;
-  final ScreenshotController screenshotController = ScreenshotController();
 
-  VerseBackgroundPreview({
+  const VerseBackgroundPreview({
     super.key,
     required this.imageUrl,
     required this.verse,
@@ -20,54 +19,56 @@ class VerseBackgroundPreview extends StatelessWidget {
     required this.fontSize,
     required this.textAlign,
     required this.textColor,
-    this.fontFamily = 'Roboto',
+    required this.fontFamily,
   });
 
   @override
   Widget build(BuildContext context) {
     return Stack(
+      fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          child: CachedNetworkImage(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            placeholder: (_, _) =>
-                const Center(child: CircularProgressIndicator()),
-          ),
-        ),
+        /// Background
+        Image.network(imageUrl, fit: BoxFit.cover),
 
-        // Dark overlay for readability
-        Positioned.fill(
-          child: Container(color: Colors.black.withOpacity(0.35)),
-        ),
+        /// Dark overlay
+        Container(color: Colors.black.withOpacity(0.35)),
 
-        Center(
+        /// Safe padded content
+        SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  verse,
-                  textAlign: textAlign,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    height: 1.4,
-                    color: textColor,
-                    fontFamily: fontFamily,
-                    fontWeight: FontWeight.w600,
-                    shadows: const [
-                      Shadow(blurRadius: 12, color: Colors.black),
-                    ],
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 48),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  /// Verse
+                  Text(
+                    verse,
+                    textAlign: textAlign,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      color: textColor,
+                      height: 1.3,
+                      fontFamily: fontFamily,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
-                Text(
-                  '— $reference',
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-              ],
+                  const SizedBox(height: 24),
+
+                  /// Reference (smaller + simple font)
+                  Text(
+                    reference,
+                    textAlign: textAlign,
+                    style: TextStyle(
+                      fontSize: fontSize * 0.55,
+                      color: textColor.withOpacity(0.9),
+                      fontStyle: FontStyle.italic,
+                      fontFamily: 'Roboto', // simple clean font
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

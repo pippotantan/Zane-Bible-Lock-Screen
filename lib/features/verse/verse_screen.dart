@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:screenshot/screenshot.dart';
 import 'package:zane_bible_lockscreen/core/models/bible_verse.dart';
 import 'package:zane_bible_lockscreen/core/services/bible_api_service.dart';
 import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
 import 'package:zane_bible_lockscreen/core/services/wallpaper_service.dart';
 import 'package:zane_bible_lockscreen/core/services/workmanager_service.dart';
 import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
-import 'package:zane_bible_lockscreen/core/utils/image_saver.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_controls.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
 import '../../core/services/unsplash_service.dart';
@@ -20,7 +18,6 @@ class VerseScreen extends StatefulWidget {
 }
 
 class _VerseScreenState extends State<VerseScreen> {
-  final ScreenshotController screenshotController = ScreenshotController();
   BibleVerse? verse;
   String? backgroundUrl;
   bool loading = true;
@@ -83,9 +80,23 @@ class _VerseScreenState extends State<VerseScreen> {
   }
 
   Future<void> generateImage() async {
+    if (verse == null || backgroundUrl == null) return;
+
     try {
-      final service = ImageGenerationService();
-      final file = await service.generateImage(screenshotController);
+      final image = await ImageGenerationService.generateVerseImage(
+        backgroundUrl: backgroundUrl!,
+        verse: verse!.text,
+        reference: verse!.reference,
+        fontSize: editor.fontSize,
+        textAlign: editor.textAlign,
+        textColor: editor.textColor,
+        fontFamily: editor.fontFamily,
+      );
+
+      final file = await ImageGenerationService.saveImage(
+        image,
+        'preview_verse.png',
+      );
 
       if (!mounted) return;
 
@@ -93,6 +104,7 @@ class _VerseScreenState extends State<VerseScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Image generated:\n${file.path}')));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to generate image: $e')));
@@ -100,17 +112,26 @@ class _VerseScreenState extends State<VerseScreen> {
   }
 
   Future<void> generateAndSetWallpaper() async {
+    if (verse == null || backgroundUrl == null) return;
+
     try {
-      final image = await screenshotController.capture(
-        delay: const Duration(milliseconds: 200),
+      final image = await ImageGenerationService.generateVerseImage(
+        backgroundUrl: backgroundUrl!,
+        verse: verse!.text,
+        reference: verse!.reference,
+        fontSize: editor.fontSize,
+        textAlign: editor.textAlign,
+        textColor: editor.textColor,
+        fontFamily: editor.fontFamily,
       );
 
-      if (image == null) return;
+      final file = await ImageGenerationService.saveImage(
+        image,
+        'manual_verse.png',
+      );
 
-      final file = await ImageSaver.saveImage(image);
-
-      // Use user’s wallpaper target preference
       final target = await SettingsService.getWallpaperTarget();
+
       int location = WallpaperService.lockScreen;
       if (target == WallpaperTarget.homeScreenOnly) {
         location = WallpaperService.homeScreen;
@@ -141,17 +162,14 @@ class _VerseScreenState extends State<VerseScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                Screenshot(
-                  controller: screenshotController,
-                  child: VerseBackgroundPreview(
-                    imageUrl: backgroundUrl!,
-                    verse: verse!.text,
-                    reference: verse!.reference,
-                    fontSize: editor.fontSize,
-                    textAlign: editor.textAlign,
-                    textColor: editor.textColor,
-                    fontFamily: editor.fontFamily, // ← real font name
-                  ),
+                VerseBackgroundPreview(
+                  imageUrl: backgroundUrl!,
+                  verse: verse!.text,
+                  reference: verse!.reference,
+                  fontSize: editor.fontSize,
+                  textAlign: editor.textAlign,
+                  textColor: editor.textColor,
+                  fontFamily: editor.fontFamily,
                 ),
 
                 Positioned(

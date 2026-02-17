@@ -48,6 +48,13 @@ class VerseEditorControls extends StatefulWidget {
 class _VerseEditorControlsState extends State<VerseEditorControls> {
   bool expanded = true;
 
+  // 🔹 ADDED: available fonts list
+  final List<String> availableFonts = [
+    'Roboto',
+    'PlayfairDisplay',
+    'GreatVibes',
+  ];
+
   // Local copies to reflect changes immediately
   late double fontSize;
   late TextAlign textAlign;
@@ -68,7 +75,6 @@ class _VerseEditorControlsState extends State<VerseEditorControls> {
   @override
   void didUpdateWidget(covariant VerseEditorControls oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Keep local state in sync if parent changes props externally
     fontSize = widget.fontSize;
     textAlign = widget.textAlign;
     textColor = widget.textColor;
@@ -126,6 +132,43 @@ class _VerseEditorControlsState extends State<VerseEditorControls> {
                       onChanged: (v) {
                         setState(() => fontSize = v);
                         widget.onFontSizeChanged(v);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              // 🔹 ADDED: Font family dropdown (below slider)
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.font_download, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButton<String>(
+                      value: fontFamily,
+                      dropdownColor: Colors.black87,
+                      isExpanded: true,
+                      style: const TextStyle(color: Colors.white),
+                      items: availableFonts
+                          .map(
+                            (f) => DropdownMenuItem(
+                              value: f,
+                              child: Text(
+                                f,
+                                style: TextStyle(
+                                  fontFamily: f,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (newFont) {
+                        if (newFont == null) return;
+
+                        setState(() => fontFamily = newFont);
+                        widget.onFontFamilyChanged(newFont);
                       },
                     ),
                   ),

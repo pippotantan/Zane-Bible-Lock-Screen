@@ -33,7 +33,7 @@ class SettingsService {
     final alignStr = p.getString(_textAlignKey) ?? 'center';
     final textColorValue = p.getInt(_textColorKey) ?? Colors.white.value;
 
-    // NEW: Use actual font family names as default
+    //Use actual font family names as default
     final fontFamily = p.getString(_fontFamilyKey) ?? 'Roboto';
 
     TextAlign align;

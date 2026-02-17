@@ -14,52 +14,10 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
   bool isLoading = true;
   bool _isSaving = false;
 
-  final availableFonts = ['Roboto', 'PlayfairDisplay', 'GreatVibes'];
-  String selectedFont = 'Roboto'; // default
-
   @override
   void initState() {
     super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    await _loadWallpaperTarget();
-
-    try {
-      final editorState = await SettingsService.loadEditorState();
-
-      if (mounted) {
-        final savedFont = editorState.fontFamily;
-
-        setState(() {
-          selectedFont = availableFonts.contains(savedFont)
-              ? savedFont
-              : 'Roboto';
-        });
-      }
-    } catch (e) {
-      print('[WallpaperSettingsScreen] Failed to load font: $e');
-    }
-  }
-
-  Future<void> _saveFont(String font) async {
-    try {
-      final editorState = await SettingsService.loadEditorState();
-      await SettingsService.saveEditorState(
-        editorState.copyWith(fontFamily: font),
-      );
-      if (mounted) {
-        setState(() {
-          selectedFont = font;
-        });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Font updated to $font')));
-      }
-    } catch (e) {
-      print('[WallpaperSettingsScreen] Failed to save font: $e');
-    }
+    _loadWallpaperTarget();
   }
 
   Future<void> _loadWallpaperTarget() async {
@@ -72,7 +30,6 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
         });
       }
     } catch (e) {
-      print('[WallpaperSettingsScreen] Failed to load target: $e');
       if (mounted) {
         setState(() {
           selectedTarget = WallpaperTarget.both;
@@ -98,7 +55,6 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
         );
       }
     } catch (e) {
-      print('[WallpaperSettingsScreen] Failed to save target: $e');
       if (mounted) setState(() => _isSaving = false);
 
       ScaffoldMessenger.of(
@@ -177,8 +133,7 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
                     ),
                     child: const Text(
                       'This setting applies to both manual wallpaper updates '
-                      'and automatic daily wallpaper generation. When you use "Set Wallpaper" '
-                      'or the scheduled automatic update runs, it will apply to your selected target location.',
+                      'and automatic daily wallpaper generation.',
                       style: TextStyle(fontSize: 14, color: Colors.blue),
                     ),
                   ),
@@ -187,27 +142,6 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
                       padding: EdgeInsets.only(top: 16),
                       child: LinearProgressIndicator(),
                     ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Select Verse Font:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButton<String>(
-                    value: selectedFont,
-                    isExpanded: true,
-                    items: availableFonts
-                        .map(
-                          (f) => DropdownMenuItem(
-                            value: f,
-                            child: Text(f, style: TextStyle(fontFamily: f)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (font) {
-                      if (font != null) _saveFont(font);
-                    },
-                  ),
                 ],
               ),
             ),
