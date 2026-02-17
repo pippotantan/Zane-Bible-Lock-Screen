@@ -17,7 +17,8 @@ class ImageGenerationService {
   static double get _fontScale => wallpaperWidth / _previewLogicalWidth;
 
   /// MAIN ENTRY POINT – canvas-based so it works identically in UI and background (WorkManager).
-  /// Downloads background image, draws it with overlay and verse text, returns PNG bytes.
+  /// [backgroundUrl] must be the hotlinked URL from Unsplash API (photo.urls).
+  /// [unsplashAttribution] optional; if set, drawn at bottom per Unsplash guidelines.
   static Future<Uint8List> generateVerseImage({
     required String backgroundUrl,
     required String verse,
@@ -26,6 +27,7 @@ class ImageGenerationService {
     required TextAlign textAlign,
     required Color textColor,
     required String fontFamily,
+    String? unsplashAttribution,
   }) async {
     return _generateVerseImageCanvas(
       backgroundUrl: backgroundUrl,
@@ -35,6 +37,7 @@ class ImageGenerationService {
       textAlign: textAlign,
       textColor: textColor,
       fontFamily: fontFamily,
+      unsplashAttribution: unsplashAttribution,
     );
   }
 
@@ -48,6 +51,7 @@ class ImageGenerationService {
     required TextAlign textAlign,
     required Color textColor,
     required String fontFamily,
+    String? unsplashAttribution,
   }) async {
     final w = wallpaperWidth;
     final h = wallpaperHeight;
@@ -177,6 +181,39 @@ class ImageGenerationService {
     );
     canvas.drawParagraph(refParagraphShadow, refOffset + ui.Offset(shadowOffset, shadowOffset));
     canvas.drawParagraph(refParagraph, refOffset);
+
+    // 6b. Unsplash attribution at bottom (per API guidelines), subtle so it doesn’t ruin the design
+    if (unsplashAttribution != null && unsplashAttribution.isNotEmpty) {
+      const attributionFontSize = 22.0; // small, readable
+      const attributionOpacity = 0.82;
+      const attrShadowOffset = 2.0;
+      final attrStyle = ui.ParagraphStyle(
+        fontFamily: 'Roboto',
+        fontSize: attributionFontSize.toDouble(),
+        textAlign: ui.TextAlign.center,
+      );
+      final attrColor = ui.Color(
+        (Colors.white.withOpacity(attributionOpacity).value),
+      );
+      final attrBuilderShadow = ui.ParagraphBuilder(attrStyle)
+        ..pushStyle(ui.TextStyle(color: shadowColor));
+      attrBuilderShadow.addText(unsplashAttribution);
+      final attrParagraphShadow = attrBuilderShadow.build();
+      attrParagraphShadow.layout(ui.ParagraphConstraints(width: contentWidth));
+
+      final attrBuilder = ui.ParagraphBuilder(attrStyle)
+        ..pushStyle(ui.TextStyle(color: attrColor));
+      attrBuilder.addText(unsplashAttribution);
+      final attrParagraph = attrBuilder.build();
+      attrParagraph.layout(ui.ParagraphConstraints(width: contentWidth));
+
+      const attributionBottomPadding = 32.0;
+      final attrY = h - verticalPadding - attributionBottomPadding - attrParagraph.height;
+      final attrX = horizontalPadding + (contentWidth - attrParagraph.width) / 2;
+      final attrOffset = ui.Offset(attrX, attrY);
+      canvas.drawParagraph(attrParagraphShadow, attrOffset + ui.Offset(attrShadowOffset, attrShadowOffset));
+      canvas.drawParagraph(attrParagraph, attrOffset);
+    }
 
     // 7. Encode to PNG
     final picture = recorder.endRecording();

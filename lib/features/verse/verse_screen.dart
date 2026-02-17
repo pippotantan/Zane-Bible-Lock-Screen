@@ -20,6 +20,7 @@ class VerseScreen extends StatefulWidget {
 class _VerseScreenState extends State<VerseScreen> {
   BibleVerse? verse;
   String? backgroundUrl;
+  String? unsplashAttribution;
   bool loading = true;
   final editor = VerseEditorState();
   bool useForDaily = false;
@@ -74,7 +75,8 @@ class _VerseScreenState extends State<VerseScreen> {
 
     setState(() {
       verse = verseResult;
-      backgroundUrl = bgResult;
+      backgroundUrl = bgResult.imageUrl;
+      unsplashAttribution = bgResult.attributionText;
       loading = false;
     });
   }
@@ -91,6 +93,7 @@ class _VerseScreenState extends State<VerseScreen> {
         textAlign: editor.textAlign,
         textColor: editor.textColor,
         fontFamily: editor.fontFamily,
+        unsplashAttribution: unsplashAttribution,
       );
 
       final file = await ImageGenerationService.saveImage(
@@ -123,6 +126,7 @@ class _VerseScreenState extends State<VerseScreen> {
         textAlign: editor.textAlign,
         textColor: editor.textColor,
         fontFamily: editor.fontFamily,
+        unsplashAttribution: unsplashAttribution,
       );
 
       final file = await ImageGenerationService.saveImage(

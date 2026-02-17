@@ -24,9 +24,10 @@ class AutoWallpaperService {
       // ✅ 2. Fetch random verse
       final BibleVerse verse = await BibleApiService().fetchRandomVerse();
 
-      // ✅ 3. Fetch background image
-      final String backgroundUrl = await UnsplashService()
-          .fetchRandomBackground();
+      // ✅ 3. Fetch background image (hotlinked URL from API + attribution)
+      final UnsplashPhotoResult unsplashPhoto =
+          await UnsplashService().fetchRandomBackground();
+      final String backgroundUrl = unsplashPhoto.imageUrl;
 
       // ✅ 4. Load editor settings (always)
       double fontSize = 42;
@@ -62,7 +63,7 @@ class AutoWallpaperService {
         print('[AutoWallpaperService] Editor settings failed, using defaults');
       }
 
-      // 6️⃣ Generate image using centralized service
+      // 6️⃣ Generate image using centralized service (with Unsplash attribution)
       final image = await ImageGenerationService.generateVerseImage(
         backgroundUrl: backgroundUrl,
         verse: verse.text,
@@ -71,6 +72,7 @@ class AutoWallpaperService {
         textAlign: textAlign,
         textColor: textColor,
         fontFamily: fontFamily,
+        unsplashAttribution: unsplashPhoto.attributionText,
       );
 
       print('[AutoWallpaperService] Image generated (${image.length} bytes)');
