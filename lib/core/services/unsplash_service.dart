@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
+import '../utils/background_keywords.dart';
 
 /// Result of a random Unsplash photo. Uses only API-returned photo.urls (hotlinking).
 /// Attribution text follows Unsplash guidelines: "Photo by [Name] / Unsplash".
@@ -20,31 +21,34 @@ class UnsplashService {
   static const String _accessKey =
       '-rS9QoE7QcKbk7JxliDlg4g-5AxfASbXa0G2gk-CPKI';
 
-  static const String _endpoint =
-      'https://api.unsplash.com/photos/random'
-      '?orientation=portrait'
-      '&query=nature,faith,sky,landscape'
-      '&content_filter=high';
+  static const String _baseUrl =
+      'https://api.unsplash.com/photos/random';
+  static const String _defaultQuery = 'nature,faith,sky,landscape';
 
   static const int _maxRetries = 5;
   static const Duration _timeout = Duration(seconds: 30);
   static const Duration _initialBackoff = Duration(seconds: 2);
 
-  /// Fetches a random background. Returns hotlinked URL from photo.urls and attribution.
-  /// All API uses must use these URLs; do not construct or alter image URLs.
-  Future<UnsplashPhotoResult> fetchRandomBackground() async {
-    print('[UnsplashService] Fetching random background image');
+  /// Fetches a random background. [keywordId] filters by Unsplash query (e.g. "all", "nature", "christian").
+  /// Returns hotlinked URL from photo.urls and attribution.
+  Future<UnsplashPhotoResult> fetchRandomBackground({String? keywordId}) async {
+    print('[UnsplashService] Fetching random background image (keyword: ${keywordId ?? "all"})');
 
-    return _retryWithBackoff(_fetchPhotoWithTimeout, maxAttempts: _maxRetries);
+    return _retryWithBackoff(
+      () => _fetchPhotoWithTimeout(keywordId),
+      maxAttempts: _maxRetries,
+    );
   }
 
-  Future<UnsplashPhotoResult> _fetchPhotoWithTimeout() async {
+  Future<UnsplashPhotoResult> _fetchPhotoWithTimeout(String? keywordId) async {
     try {
+      final query = BackgroundKeywords.queryFor(keywordId ?? BackgroundKeywords.all);
+      final endpoint = '$_baseUrl?orientation=portrait&query=${Uri.encodeQueryComponent(query)}&content_filter=high';
       print('[UnsplashService] Making HTTP request to Unsplash API');
 
       final response = await http
           .get(
-            Uri.parse(_endpoint),
+            Uri.parse(endpoint),
             headers: {'Authorization': 'Client-ID $_accessKey'},
           )
           .timeout(

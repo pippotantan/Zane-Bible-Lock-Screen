@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:zane_bible_lockscreen/core/utils/background_keywords.dart';
 import 'package:zane_bible_lockscreen/core/utils/bible_topics.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
 
@@ -16,8 +17,20 @@ class SettingsService {
   static const _scheduledMinuteKey = 'daily_scheduled_minute';
   static const _wallpaperTargetKey = 'wallpaper_target';
   static const _verseTopicKey = 'verse_topic';
+  static const _backgroundKeywordKey = 'background_keyword';
 
   static Future<SharedPreferences> _prefs() => SharedPreferences.getInstance();
+
+  /// Background image keyword filter (e.g. "all", "nature", "christian"). Default "all".
+  static Future<String> getBackgroundKeyword() async {
+    final p = await _prefs();
+    return p.getString(_backgroundKeywordKey) ?? BackgroundKeywords.all;
+  }
+
+  static Future<void> setBackgroundKeyword(String keywordId) async {
+    final p = await _prefs();
+    await p.setString(_backgroundKeywordKey, keywordId);
+  }
 
   /// Verse topic filter (e.g. "all", "love", "hope"). Default "all" = all 66 books.
   static Future<String> getVerseTopic() async {

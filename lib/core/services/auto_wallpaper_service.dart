@@ -25,9 +25,10 @@ class AutoWallpaperService {
       final topic = await SettingsService.getVerseTopic();
       final BibleVerse verse = await BibleApiService().fetchRandomVerse(topicId: topic);
 
-      // ✅ 3. Fetch background image (hotlinked URL from API + attribution)
+      // ✅ 3. Fetch background image (filtered by keyword + attribution)
+      final keyword = await SettingsService.getBackgroundKeyword();
       final UnsplashPhotoResult unsplashPhoto =
-          await UnsplashService().fetchRandomBackground();
+          await UnsplashService().fetchRandomBackground(keywordId: keyword);
       final String backgroundUrl = unsplashPhoto.imageUrl;
 
       // ✅ 4. Load editor settings (always)

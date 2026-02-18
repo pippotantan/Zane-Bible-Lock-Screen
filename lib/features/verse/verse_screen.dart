@@ -71,8 +71,9 @@ class _VerseScreenState extends State<VerseScreen> {
     final unsplashService = UnsplashService();
 
     final topic = await SettingsService.getVerseTopic();
+    final keyword = await SettingsService.getBackgroundKeyword();
     final verseResult = await bibleService.fetchRandomVerse(topicId: topic);
-    final bgResult = await unsplashService.fetchRandomBackground();
+    final bgResult = await unsplashService.fetchRandomBackground(keywordId: keyword);
 
     setState(() {
       verse = verseResult;

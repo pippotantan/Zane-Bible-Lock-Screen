@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
+import 'package:zane_bible_lockscreen/core/utils/background_keywords.dart';
 import 'package:zane_bible_lockscreen/core/utils/bible_topics.dart';
 
 class WallpaperSettingsScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class WallpaperSettingsScreen extends StatefulWidget {
 class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
   WallpaperTarget selectedTarget = WallpaperTarget.both;
   String selectedVerseTopic = BibleTopics.all;
+  String selectedBackgroundKeyword = BackgroundKeywords.all;
   bool isLoading = true;
   bool _isSaving = false;
 
@@ -26,10 +28,12 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
     try {
       final target = await SettingsService.getWallpaperTarget();
       final topic = await SettingsService.getVerseTopic();
+      final keyword = await SettingsService.getBackgroundKeyword();
       if (mounted) {
         setState(() {
           selectedTarget = target;
           selectedVerseTopic = topic;
+          selectedBackgroundKeyword = keyword;
           isLoading = false;
         });
       }
@@ -38,9 +42,31 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
         setState(() {
           selectedTarget = WallpaperTarget.both;
           selectedVerseTopic = BibleTopics.all;
+          selectedBackgroundKeyword = BackgroundKeywords.all;
           isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _saveBackgroundKeyword(String keywordId) async {
+    setState(() => _isSaving = true);
+    try {
+      await SettingsService.setBackgroundKeyword(keywordId);
+      if (mounted) {
+        setState(() {
+          selectedBackgroundKeyword = keywordId;
+          _isSaving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Background keyword updated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update keyword: $e')),
+      );
     }
   }
 
@@ -124,6 +150,42 @@ class _WallpaperSettingsScreenState extends State<WallpaperSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Text(
+                    'Background image by keyword',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Filter background images by topic (Nature, Christian, Animals, etc.). Default: All (varied).',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: BackgroundKeywords.keywordIds.contains(selectedBackgroundKeyword)
+                            ? selectedBackgroundKeyword
+                            : BackgroundKeywords.all,
+                        underline: const SizedBox(),
+                        items: BackgroundKeywords.keywordIds.map((id) {
+                          return DropdownMenuItem<String>(
+                            value: id,
+                            child: Text(BackgroundKeywords.labelFor(id)),
+                          );
+                        }).toList(),
+                        onChanged: _isSaving
+                            ? null
+                            : (value) {
+                                if (value != null) _saveBackgroundKeyword(value);
+                              },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   const Text(
                     'Verse by topic or keyword',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

@@ -46,7 +46,7 @@ class VerseEditorControls extends StatefulWidget {
 }
 
 class _VerseEditorControlsState extends State<VerseEditorControls> {
-  bool expanded = true;
+  bool expanded = false;
 
   // 🔹 ADDED: available fonts list
   final List<String> availableFonts = [
@@ -84,40 +84,75 @@ class _VerseEditorControlsState extends State<VerseEditorControls> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      left: false,
-      right: false,
-      bottom: true,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        color: Colors.black87,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header collapse/expand
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    expanded ? Icons.expand_more : Icons.chevron_left,
-                    color: Colors.white,
-                  ),
-                  onPressed: () => setState(() => expanded = !expanded),
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
+    if (!expanded) {
+      return Align(
+        alignment: Alignment.bottomLeft,
+        child: SafeArea(
+          top: false,
+          left: true,
+          right: false,
+          bottom: true,
+          minimum: const EdgeInsets.only(left: 12, bottom: 12),
+          child: Material(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(28),
+            child: InkWell(
+              onTap: () => setState(() => expanded = true),
+              borderRadius: BorderRadius.circular(28),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.settings, color: Colors.white, size: 22),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Editor & Controls',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.expand_less, color: Colors.white, size: 20),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Editor & Controls',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+              ),
             ),
-            if (!expanded) const SizedBox.shrink(),
-            if (expanded) ...[
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: screenWidth,
+      child: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          color: Colors.black87,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Editor & Controls',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.expand_more, color: Colors.white),
+                    onPressed: () => setState(() => expanded = false),
+                  ),
+                ],
+              ),
+              ...[
               // Font size slider
               Row(
                 children: [
@@ -290,6 +325,7 @@ class _VerseEditorControlsState extends State<VerseEditorControls> {
           ],
         ),
       ),
+    ),
     );
   }
 
