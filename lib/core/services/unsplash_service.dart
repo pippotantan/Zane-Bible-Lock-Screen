@@ -8,6 +8,7 @@ import '../utils/background_keywords.dart';
 class UnsplashPhotoResult {
   /// Hotlinked image URL from API (photo.urls.regular or .full). Must not be altered.
   final String imageUrl;
+
   /// Attribution line for the photographer and Unsplash (e.g. "Photo by Jane Doe / Unsplash").
   final String attributionText;
 
@@ -21,9 +22,7 @@ class UnsplashService {
   static const String _accessKey =
       '-rS9QoE7QcKbk7JxliDlg4g-5AxfASbXa0G2gk-CPKI';
 
-  static const String _baseUrl =
-      'https://api.unsplash.com/photos/random';
-  static const String _defaultQuery = 'nature,faith,sky,landscape';
+  static const String _baseUrl = 'https://api.unsplash.com/photos/random';
 
   static const int _maxRetries = 5;
   static const Duration _timeout = Duration(seconds: 30);
@@ -32,7 +31,9 @@ class UnsplashService {
   /// Fetches a random background. [keywordId] filters by Unsplash query (e.g. "all", "nature", "christian").
   /// Returns hotlinked URL from photo.urls and attribution.
   Future<UnsplashPhotoResult> fetchRandomBackground({String? keywordId}) async {
-    print('[UnsplashService] Fetching random background image (keyword: ${keywordId ?? "all"})');
+    print(
+      '[UnsplashService] Fetching random background image (keyword: ${keywordId ?? "all"})',
+    );
 
     return _retryWithBackoff(
       () => _fetchPhotoWithTimeout(keywordId),
@@ -42,8 +43,11 @@ class UnsplashService {
 
   Future<UnsplashPhotoResult> _fetchPhotoWithTimeout(String? keywordId) async {
     try {
-      final query = BackgroundKeywords.queryFor(keywordId ?? BackgroundKeywords.all);
-      final endpoint = '$_baseUrl?orientation=portrait&query=${Uri.encodeQueryComponent(query)}&content_filter=high';
+      final query = BackgroundKeywords.queryFor(
+        keywordId ?? BackgroundKeywords.all,
+      );
+      final endpoint =
+          '$_baseUrl?orientation=portrait&query=${Uri.encodeQueryComponent(query)}&content_filter=high';
       print('[UnsplashService] Making HTTP request to Unsplash API');
 
       final response = await http
