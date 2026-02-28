@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:zane_bible_lockscreen/core/models/bible_verse.dart';
-import 'package:zane_bible_lockscreen/core/services/bible_api_service.dart';
+import 'package:zane_bible_lockscreen/core/services/background_provider.dart';
 import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
+import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
+import 'package:zane_bible_lockscreen/core/services/verse_repository.dart';
 import 'package:zane_bible_lockscreen/core/services/wallpaper_service.dart';
 import 'package:zane_bible_lockscreen/core/services/workmanager_service.dart';
-import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_controls.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
-import '../../core/services/unsplash_service.dart';
-import '../../widgets/verse_background_preview.dart';
+import 'package:zane_bible_lockscreen/widgets/verse_background_preview.dart';
 
 class VerseScreen extends StatefulWidget {
   const VerseScreen({super.key});
@@ -20,6 +20,7 @@ class VerseScreen extends StatefulWidget {
 class _VerseScreenState extends State<VerseScreen> {
   BibleVerse? verse;
   String? backgroundUrl;
+  String? backgroundPath;
   String? unsplashAttribution;
   bool loading = true;
   final editor = VerseEditorState();
@@ -67,28 +68,56 @@ class _VerseScreenState extends State<VerseScreen> {
   Future<void> loadVerse() async {
     setState(() => loading = true);
 
-    final bibleService = BibleApiService();
-    final unsplashService = UnsplashService();
-
+    final verseRepo = VerseRepository();
     final topic = await SettingsService.getVerseTopic();
     final keyword = await SettingsService.getBackgroundKeyword();
-    final verseResult = await bibleService.fetchRandomVerse(topicId: topic);
-    final bgResult = await unsplashService.fetchRandomBackground(keywordId: keyword);
 
-    setState(() {
-      verse = verseResult;
-      backgroundUrl = bgResult.imageUrl;
-      unsplashAttribution = bgResult.attributionText;
-      loading = false;
-    });
+    try {
+      final verseResult = await verseRepo.fetchRandomVerse(topicId: topic);
+      final bgResult = await BackgroundProvider.fetchBackground(keywordId: keyword);
+
+      if (!mounted) return;
+      setState(() {
+        verse = verseResult;
+        backgroundUrl = bgResult?.imageUrl;
+        backgroundPath = bgResult?.localPath;
+        unsplashAttribution = bgResult?.attributionText;
+        loading = false;
+      });
+      if (bgResult == null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No background available. Add images in Settings or check your connection.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load: $e')),
+        );
+      }
+    }
   }
 
   Future<void> generateImage() async {
-    if (verse == null || backgroundUrl == null) return;
+    if (verse == null) return;
+    if (backgroundUrl == null && backgroundPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a background in Settings to generate an image.'),
+        ),
+      );
+      return;
+    }
 
     try {
       final image = await ImageGenerationService.generateVerseImage(
-        backgroundUrl: backgroundUrl!,
+        backgroundUrl: backgroundUrl,
+        backgroundPath: backgroundPath,
         verse: verse!.text,
         reference: verse!.reference,
         fontSize: editor.fontSize,
@@ -117,11 +146,20 @@ class _VerseScreenState extends State<VerseScreen> {
   }
 
   Future<void> generateAndSetWallpaper() async {
-    if (verse == null || backgroundUrl == null) return;
+    if (verse == null) return;
+    if (backgroundUrl == null && backgroundPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a background in Settings to set wallpaper.'),
+        ),
+      );
+      return;
+    }
 
     try {
       final image = await ImageGenerationService.generateVerseImage(
-        backgroundUrl: backgroundUrl!,
+        backgroundUrl: backgroundUrl,
+        backgroundPath: backgroundPath,
         verse: verse!.text,
         reference: verse!.reference,
         fontSize: editor.fontSize,
@@ -164,12 +202,13 @@ class _VerseScreenState extends State<VerseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: loading || verse == null || backgroundUrl == null
+      body: loading || verse == null
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
                 VerseBackgroundPreview(
-                  imageUrl: backgroundUrl!,
+                  imageUrl: backgroundUrl,
+                  localPath: backgroundPath,
                   verse: verse!.text,
                   reference: verse!.reference,
                   fontSize: editor.fontSize,

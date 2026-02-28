@@ -1,6 +1,6 @@
 # DailyFaith
 
-DailyFaith is a Flutter app that turns your lock screen and home screen into a daily dose of Scripture. It pairs a random Bible verse with a beautiful background image, then generates a wallpaper you can set manually or have updated automatically on a schedule.
+DailyFaith is an app that turns your lock screen and home screen into a daily dose of Scripture. It pairs a random Bible verse with a beautiful background image, then generates a wallpaper you can set manually or have updated automatically on a schedule.
 
 ## Features
 

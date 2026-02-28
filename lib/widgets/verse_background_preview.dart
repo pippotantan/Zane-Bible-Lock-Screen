@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -18,7 +19,12 @@ List<Shadow> _readabilityShadows(Color textColor) {
 }
 
 class VerseBackgroundPreview extends StatelessWidget {
-  final String imageUrl;
+  /// Network image URL (from Unsplash). Use when [localPath] is null.
+  final String? imageUrl;
+
+  /// Local file path (from device gallery). Use when [imageUrl] is null.
+  final String? localPath;
+
   final String verse;
   final String reference;
   final double fontSize;
@@ -28,7 +34,8 @@ class VerseBackgroundPreview extends StatelessWidget {
 
   const VerseBackgroundPreview({
     super.key,
-    required this.imageUrl,
+    this.imageUrl,
+    this.localPath,
     required this.verse,
     required this.reference,
     required this.fontSize,
@@ -39,11 +46,20 @@ class VerseBackgroundPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Widget imageWidget;
+    if (localPath != null && localPath!.isNotEmpty) {
+      imageWidget = Image.file(File(localPath!), fit: BoxFit.cover);
+    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
+      imageWidget = Image.network(imageUrl!, fit: BoxFit.cover);
+    } else {
+      imageWidget = Container(color: const Color(0xFF1a1a2e));
+    }
+
     return Stack(
       fit: StackFit.expand,
       children: [
         /// Background
-        Image.network(imageUrl, fit: BoxFit.cover),
+        imageWidget,
 
         /// Dark overlay for readability on any background
         Container(color: Colors.black.withOpacity(0.48)),

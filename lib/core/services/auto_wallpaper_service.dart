@@ -1,35 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:wallpaper_manager_flutter/wallpaper_manager_flutter.dart';
 import 'package:zane_bible_lockscreen/core/models/bible_verse.dart';
-import 'package:zane_bible_lockscreen/core/services/bible_api_service.dart';
+import 'package:zane_bible_lockscreen/core/services/background_provider.dart';
 import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
-import 'package:zane_bible_lockscreen/core/services/unsplash_service.dart';
-import 'package:zane_bible_lockscreen/core/services/network_service.dart';
 import 'package:zane_bible_lockscreen/core/services/settings_service.dart';
+import 'package:zane_bible_lockscreen/core/services/verse_repository.dart';
 
 class AutoWallpaperService {
   static Future<void> run() async {
     print('[AutoWallpaperService] Starting wallpaper generation');
 
     try {
-      // ✅ 1. Check Network
-      final hasNetwork = await NetworkService.hasNetworkConnection();
-      if (!hasNetwork) {
-        print('[AutoWallpaperService] No network connection. Aborting.');
+      // ✅ 1. Fetch random verse (uses API when online, offline store when not)
+      final topic = await SettingsService.getVerseTopic();
+      final BibleVerse verse =
+          await VerseRepository().fetchRandomVerse(topicId: topic);
+
+      // ✅ 2. Fetch background (Unsplash when online, or local gallery for offline)
+      final keyword = await SettingsService.getBackgroundKeyword();
+      final bgResult = await BackgroundProvider.fetchBackground(keywordId: keyword);
+
+      if (bgResult == null) {
+        print('[AutoWallpaperService] No background available. Skipping.');
         return;
       }
-
-      // ✅ 2. Fetch random verse (filtered by user's topic if set)
-      final topic = await SettingsService.getVerseTopic();
-      final BibleVerse verse = await BibleApiService().fetchRandomVerse(
-        topicId: topic,
-      );
-
-      // ✅ 3. Fetch background image (filtered by keyword + attribution)
-      final keyword = await SettingsService.getBackgroundKeyword();
-      final UnsplashPhotoResult unsplashPhoto = await UnsplashService()
-          .fetchRandomBackground(keywordId: keyword);
-      final String backgroundUrl = unsplashPhoto.imageUrl;
 
       // ✅ 4. Load editor settings (always)
       double fontSize = 42;
@@ -65,16 +59,17 @@ class AutoWallpaperService {
         print('[AutoWallpaperService] Editor settings failed, using defaults');
       }
 
-      // 6️⃣ Generate image using centralized service (with Unsplash attribution)
+      // 6️⃣ Generate image using centralized service (with Unsplash attribution when applicable)
       final image = await ImageGenerationService.generateVerseImage(
-        backgroundUrl: backgroundUrl,
+        backgroundUrl: bgResult.imageUrl,
+        backgroundPath: bgResult.localPath,
         verse: verse.text,
         reference: verse.reference,
         fontSize: fontSize,
         textAlign: textAlign,
         textColor: textColor,
         fontFamily: fontFamily,
-        unsplashAttribution: unsplashPhoto.attributionText,
+        unsplashAttribution: bgResult.attributionText,
       );
 
       print('[AutoWallpaperService] Image generated (${image.length} bytes)');

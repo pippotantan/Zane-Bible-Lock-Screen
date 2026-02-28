@@ -97,7 +97,7 @@ Future<void> _rescheduleForNextDay() async {
       'dailyVerseWallpaper',
       initialDelay: delay,
       constraints: Constraints(
-        networkType: NetworkType.connected,
+        networkType: NetworkType.notRequired,
         requiresBatteryNotLow: false,
         requiresDeviceIdle: false,
         requiresStorageNotLow: false,
@@ -126,7 +126,7 @@ Future<void> _rescheduleForRetry() async {
       'dailyVerseWallpaper',
       initialDelay: delay,
       constraints: Constraints(
-        networkType: NetworkType.connected,
+        networkType: NetworkType.notRequired,
         requiresBatteryNotLow: false,
         requiresDeviceIdle: false,
         requiresStorageNotLow: false,

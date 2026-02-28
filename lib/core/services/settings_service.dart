@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:zane_bible_lockscreen/core/models/background_source.dart';
 import 'package:zane_bible_lockscreen/core/utils/background_keywords.dart';
 import 'package:zane_bible_lockscreen/core/utils/bible_topics.dart';
 import 'package:zane_bible_lockscreen/features/editor/verse_editor_state.dart';
@@ -18,6 +19,7 @@ class SettingsService {
   static const _wallpaperTargetKey = 'wallpaper_target';
   static const _verseTopicKey = 'verse_topic';
   static const _backgroundKeywordKey = 'background_keyword';
+  static const _backgroundSourceKey = 'background_source';
 
   static Future<SharedPreferences> _prefs() => SharedPreferences.getInstance();
 
@@ -30,6 +32,23 @@ class SettingsService {
   static Future<void> setBackgroundKeyword(String keywordId) async {
     final p = await _prefs();
     await p.setString(_backgroundKeywordKey, keywordId);
+  }
+
+  /// Background source: Unsplash (online) or local gallery (offline-capable).
+  static Future<BackgroundSource> getBackgroundSource() async {
+    final p = await _prefs();
+    final value = p.getString(_backgroundSourceKey) ?? 'unsplash';
+    return value == 'localGallery'
+        ? BackgroundSource.localGallery
+        : BackgroundSource.unsplash;
+  }
+
+  static Future<void> setBackgroundSource(BackgroundSource source) async {
+    final p = await _prefs();
+    await p.setString(
+      _backgroundSourceKey,
+      source == BackgroundSource.localGallery ? 'localGallery' : 'unsplash',
+    );
   }
 
   /// Verse topic filter (e.g. "all", "love", "hope"). Default "all" = all 66 books.

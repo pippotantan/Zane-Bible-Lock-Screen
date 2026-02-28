@@ -49,7 +49,7 @@ class WorkManagerService {
         dailyVerseTask,
         initialDelay: initial,
         constraints: Constraints(
-          networkType: NetworkType.connected,
+          networkType: NetworkType.notRequired,
           requiresBatteryNotLow: false,
           requiresDeviceIdle: false,
           requiresStorageNotLow: false,

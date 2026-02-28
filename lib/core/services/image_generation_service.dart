@@ -17,10 +17,11 @@ class ImageGenerationService {
   static double get _fontScale => wallpaperWidth / _previewLogicalWidth;
 
   /// MAIN ENTRY POINT – canvas-based so it works identically in UI and background (WorkManager).
-  /// [backgroundUrl] must be the hotlinked URL from Unsplash API (photo.urls).
+  /// Provide either [backgroundUrl] (Unsplash) or [backgroundPath] (local file).
   /// [unsplashAttribution] optional; if set, drawn at bottom per Unsplash guidelines.
   static Future<Uint8List> generateVerseImage({
-    required String backgroundUrl,
+    String? backgroundUrl,
+    String? backgroundPath,
     required String verse,
     required String reference,
     required double fontSize,
@@ -31,6 +32,7 @@ class ImageGenerationService {
   }) async {
     return _generateVerseImageCanvas(
       backgroundUrl: backgroundUrl,
+      backgroundPath: backgroundPath,
       verse: verse,
       reference: reference,
       fontSize: fontSize,
@@ -44,7 +46,8 @@ class ImageGenerationService {
   /// Canvas-based generator: works with or without Flutter view (e.g. WorkManager isolate).
   /// Produces identical output for manual and automatic wallpaper updates.
   static Future<Uint8List> _generateVerseImageCanvas({
-    required String backgroundUrl,
+    String? backgroundUrl,
+    String? backgroundPath,
     required String verse,
     required String reference,
     required double fontSize,
@@ -56,17 +59,30 @@ class ImageGenerationService {
     final w = wallpaperWidth;
     final h = wallpaperHeight;
 
-    // 1. Download background image
-    final resp = await http
-        .get(Uri.parse(backgroundUrl))
-        .timeout(const Duration(seconds: 20));
-    if (resp.statusCode != 200 || resp.bodyBytes.isEmpty) {
-      throw Exception('Failed to download background image: ${resp.statusCode}');
+    // 1. Load background image (from URL or local file)
+    Uint8List bgBytes;
+    if (backgroundPath != null && backgroundPath.isNotEmpty) {
+      final file = File(backgroundPath);
+      if (!await file.exists()) {
+        throw Exception('Local background file not found: $backgroundPath');
+      }
+      bgBytes = await file.readAsBytes();
+    } else if (backgroundUrl != null && backgroundUrl.isNotEmpty) {
+      final resp = await http
+          .get(Uri.parse(backgroundUrl))
+          .timeout(const Duration(seconds: 20));
+      if (resp.statusCode != 200 || resp.bodyBytes.isEmpty) {
+        throw Exception(
+            'Failed to download background image: ${resp.statusCode}');
+      }
+      bgBytes = resp.bodyBytes;
+    } else {
+      throw Exception('Either backgroundUrl or backgroundPath must be provided');
     }
 
     // 2. Decode image
     final codec = await ui.instantiateImageCodec(
-      resp.bodyBytes,
+      bgBytes,
       targetWidth: w,
       targetHeight: h,
     );
