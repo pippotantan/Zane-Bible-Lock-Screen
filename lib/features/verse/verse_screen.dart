@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:zane_bible_lockscreen/core/models/bible_verse.dart';
 import 'package:zane_bible_lockscreen/core/services/background_provider.dart';
 import 'package:zane_bible_lockscreen/core/services/image_generation_service.dart';
@@ -127,16 +128,28 @@ class _VerseScreenState extends State<VerseScreen> {
         unsplashAttribution: unsplashAttribution,
       );
 
-      final file = await ImageGenerationService.saveImage(
+      final name = 'verse_${DateTime.now().millisecondsSinceEpoch}';
+      final result = await ImageGallerySaverPlus.saveImage(
         image,
-        'preview_verse.png',
+        name: name,
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Image generated:\n${file.path}')));
+      final isSuccess = result['isSuccess'] == true;
+      if (isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image saved to gallery')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to save to gallery: ${result['error'] ?? 'Permission denied or storage unavailable'}',
+            ),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

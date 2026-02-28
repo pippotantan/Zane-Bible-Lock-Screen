@@ -80,10 +80,11 @@ class ImageGenerationService {
       throw Exception('Either backgroundUrl or backgroundPath must be provided');
     }
 
-    // 2. Decode image
+    // 2. Decode image – use targetHeight only to preserve aspect ratio.
+    // Passing both targetWidth and targetHeight would stretch/distort images that
+    // don't match the wallpaper ratio (e.g. landscape or square local photos).
     final codec = await ui.instantiateImageCodec(
       bgBytes,
-      targetWidth: w,
       targetHeight: h,
     );
     final frame = await codec.getNextFrame();
@@ -93,7 +94,7 @@ class ImageGenerationService {
     final canvas = ui.Canvas(recorder);
     final paint = ui.Paint();
 
-    // 3. Draw background (cover)
+    // 3. Draw background (cover) – scale uniformly to fill, crop excess, preserve proportions
     final srcW = bgImage.width.toDouble();
     final srcH = bgImage.height.toDouble();
     final scale = (w / srcW).clamp(0.0, double.infinity) >

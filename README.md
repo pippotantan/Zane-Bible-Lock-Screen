@@ -1,22 +1,41 @@
 # DailyFaith
 
-DailyFaith is an app that turns your lock screen and home screen into a daily dose of Scripture. It pairs a random Bible verse with a beautiful background image, then generates a wallpaper you can set manually or have updated automatically on a schedule.
+DailyFaith turns your lock screen and home screen into a daily dose of Scripture. It pairs a random Bible verse with a beautiful background image, then generates a wallpaper you can set manually or have updated automatically on a schedule.
 
 ## Features
 
-- **Daily verse wallpapers** — Random verse from the Bible (labs.bible.org) over a high-quality background image (Unsplash), with readable text and optional dark overlay.
-- **Verse by topic** — Filter verses by keyword: All (66 books), Love, Strength, Hope, Peace, Faith, Comfort, Wisdom, Grace, or Joy. Choose in Wallpaper Settings.
-- **Manual or automatic updates** — Set the current verse + image as your wallpaper with one tap, or schedule a daily refresh at a time you choose (e.g. each morning).
-- **Apply where you want** — Use Wallpaper Settings to apply updates to lock screen only, home screen only, or both.
-- **Customize the look** — Adjust font size, alignment, color, and font family. Your choices are saved and used for both manual and scheduled wallpapers.
-- **Unsplash attribution** — Backgrounds use Unsplash’s API and hotlinked URLs; photographer credit is shown at the bottom of each wallpaper.
+### Verse Wallpapers
+- **Daily verse wallpapers** — Random verse over a high-quality background, with readable text and dark overlay for contrast.
+- **Verse by topic** — Filter verses by keyword: All (66 books), Love, Strength, Hope, Peace, Faith, Comfort, Wisdom, Grace, or Joy.
+- **Offline verses** — 100+ verses are stored locally so the app can show random verses even without an internet connection.
+
+### Background Images
+- **Unsplash (online)** — High-quality images from Unsplash API. Filter by keyword: All, Nature, Christian, Animals, Wildlife, Outer Space, Landscape, Sky, Ocean, Mountains, or Flowers.
+- **Device gallery (offline)** — Select multiple images from your gallery. The app picks one randomly for each background. Works fully offline.
+- **Background source** — Choose Unsplash or your gallery in Wallpaper Settings. When offline, Unsplash automatically falls back to local gallery if available.
+- **Unsplash attribution** — Photographer credit shown at the bottom when using Unsplash images.
+
+### Customization
+- **Font size, alignment, color** — Adjust how the verse appears on the wallpaper.
+- **Font family** — Roboto, Playfair Display, or Great Vibes.
+- **Use for daily** — Apply your editor settings to scheduled wallpapers.
+- **Apply where** — Lock screen only, home screen only, or both (via Wallpaper Settings).
+
+### Wallpaper Updates
+- **Manual** — Set the current verse + image as your wallpaper with one tap.
+- **Scheduled** — Daily refresh at a time you choose (e.g. each morning). Uses WorkManager for reliable background execution.
+- **Capture preview** — Save the current design as an image without setting it as wallpaper.
+
+### Offline Support
+- **Works offline** — With local gallery images selected, the app can update wallpapers without internet. Offline verses are pre-loaded for all topics.
+- **Scheduled updates offline** — Daily wallpaper tasks run even when the device is offline, using local images and verses.
 
 ## Requirements
 
-- Flutter SDK (see `pubspec.yaml` for version)
+- Flutter SDK ^3.9.2 (see `pubspec.yaml`)
 - Android (tested); iOS and other platforms may need configuration
-- Network access for verses and images
-- Permissions: wallpaper, storage/media (for setting wallpaper), notifications and exact alarm (for scheduled updates)
+- Network access for verses and images (when using online sources)
+- Permissions: wallpaper, storage/media (for setting wallpaper and gallery), notifications and exact alarm (for scheduled updates)
 
 ## Getting Started
 
@@ -24,11 +43,13 @@ DailyFaith is an app that turns your lock screen and home screen into a daily do
 2. Run `flutter pub get`.
 3. Run the app: `flutter run`, or build a release APK: `flutter build apk --release`.
 
-## Project structure
+## Project Structure
 
 - `lib/features/` — Main UI: verse screen, editor controls, wallpaper settings.
-- `lib/core/services/` — Bible API, Unsplash, image generation, wallpaper, WorkManager (scheduling), settings.
-- `lib/core/utils/` — Bible metadata (66 books), topic → passage mapping.
+- `lib/core/services/` — Background provider, Bible API, verse repository, Unsplash, local gallery, image generation, wallpaper, WorkManager, settings.
+- `lib/core/data/` — Offline verse store.
+- `lib/core/models/` — Bible verse, background source, background result.
+- `lib/core/utils/` — Bible metadata (66 books), topics, background keywords.
 - `lib/background/` — WorkManager callback for scheduled wallpaper updates.
 
 ## License
